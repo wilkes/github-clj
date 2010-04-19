@@ -150,3 +150,10 @@
   (doseq [repo-name (map :name (list-all-repos repo-owner))]
     (remove-collaborator repo-name collab-user)
     (println "removed " collab-user " from " repo-name)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Commits API
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(GET list-commits "commits/list/:user_id/:repository/:branch")
+(GET list-file-commits "commits/list/:user_id/:repository/:branch/:path")
+(GET commit-info "commits/show/:user_id/:repository/:sha")
