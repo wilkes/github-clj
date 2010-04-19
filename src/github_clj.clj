@@ -47,10 +47,13 @@
    (vec (map (comp symbol second) (re-seq #":([a-z]+)" s)))])
 
 (defn parse-response [response]
-  (let [[body] (:body-seq response)
+  (let [body (apply str (interpose "\n" (:body-seq response)))
         code (:code response)]
     (if (= 200 code)
-      (keywordify-keys (read-json-string body))
+      (try
+       (keywordify-keys (read-json-string body))
+       (catch Exception _
+         (throw (Exception. (str "Unable to parse:\n" body "\n\n")))))
       (throw (Exception. (str code " " (:msg response)))))))
 
 (defn make-key-mapper [f keys]
@@ -63,7 +66,7 @@
             keys)))
 
 (defn nested [& keys]
-  (make-key-mapper #(str "values[" (name k) "]") keys))
+  (make-key-mapper #(str "values[" (name %) "]") keys))
 
 (defn flat [& keys]
   (make-key-mapper identity keys))
@@ -157,3 +160,34 @@
 (GET list-commits "commits/list/:user_id/:repository/:branch")
 (GET list-file-commits "commits/list/:user_id/:repository/:branch/:path")
 (GET commit-info "commits/show/:user_id/:repository/:sha")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Issues API
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(GET  search-issues "issues/search/:user/:repo/:state/:search_term")
+(GET  list-project-issues "issues/list/:user/:repo/:state")
+(GET  show-issue "issues/show/:user/:repo/:number")
+(GET  list-issue-comments "issues/comments/:user/:repo/:number")
+(POST open-issue "issues/open/:user/:repo" (flat :title :body))
+(POST close-issue "issues/close/:user/:repo/:number")
+(POST reopen-issue "issues/reopen/:user/:repo/:number")
+(POST edit-issue "issues/edit/:user/:repo/:number" (flat :title :body))
+(GET  list-labels "issues/labels/:user/:repo")
+(POST add-label "issues/label/add/:user/:repo/:label/:number")
+(POST remove-label "issues/label/add/:user/:repo/:label/:number")
+(POST comment-on-issue "issues/comment/:user/:repo/:id" (flat :comment))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Network API
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn network-meta [user repo]
+  (parse-response
+   (request (str (format "https://github.com/%s/%s/network_meta" user repo)
+                 "?" (url-encode (auth-info))))))
+
+(defn network-data-chunk [user repo nethash]
+  (parse-response
+   (request (str (format "https://github.com/%s/%s/network_data_chunk?" user repo)
+                 "?" (url-encode (merge {"nethash" nethash} (auth-info)))))))
