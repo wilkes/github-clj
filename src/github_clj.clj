@@ -18,8 +18,25 @@
 (defn key-fn [s]
   #(get % s))
 
-(defn stringify-keys [map]
-  (reduce (fn [r [k v]] (conj r {(name k) v}))))
+(defn apply-to-keys [f m]
+  (let [map-over-list (fn [l] (map (fn [x]
+                                     (if (map? x)
+                                       (apply-to-keys f x)
+                                       x))
+                                   l))
+        g (fn [x]
+            (cond
+             (map? x) (apply-to-keys f x)
+             (or (list? x) (vector? x)) (map-over-list x)
+             :default x))]
+    (reduce (fn [r [k v]] (conj r {(f k) (g v)}))
+            {}
+            m)))
+(defn stringify-keys [m]
+  (apply-to-keys (fn [k] (if (keyword? k) (name k) (str k))) m))
+
+(defn keywordify-keys [m]
+  (apply-to-keys keyword m))
 
 (defn sub-action [action]
   (re-sub #"\*login\*" *login* action))
@@ -28,7 +45,7 @@
   (let [[body] (:body-seq response)
         code (:code response)]
     (if (= 200 code)
-      (read-json-string body)
+      (keywordify-keys (read-json-string body))
       (throw (Exception. (str code " " (:msg response)))))))
 
 (defn do-get [action]
@@ -40,7 +57,7 @@
                            nil
                            nil
                            (if (map? params)
-                             (merge params (auth-info))
+                             (stringify-keys (merge params (auth-info)))
                              (str params "&" (url-encode (auth-info)))))))
 
 (defmacro GET [name action-base action-params]
