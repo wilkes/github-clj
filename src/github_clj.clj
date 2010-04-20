@@ -46,15 +46,19 @@
   [(re-gsub #":[a-z]+" "%s" s)
    (vec (map (comp symbol second) (re-seq #":([a-z]+)" s)))])
 
-(defn parse-response [response]
-  (let [body (apply str (interpose "\n" (:body-seq response)))
-        code (:code response)]
-    (if (= 200 code)
-      (try
-       (keywordify-keys (read-json-string body))
-       (catch Exception _
-         (throw (Exception. (str "Unable to parse:\n" body "\n\n")))))
-      (throw (Exception. (str code " " (:msg response)))))))
+(defn parse-response
+  ([response]
+     (parse-response response (comp keywordify-keys read-json-string)))
+  ([response body-reader]
+     (let [body (apply str (interpose "\n" (:body-seq response)))
+           code (:code response)]
+       (if (= 200 code)
+         (try
+          (body-reader body)
+          (catch Exception e
+            (throw (Exception. (str "Unable to parse:\n" body "\n\n")
+                               e))))
+         (throw (Exception. (str code " " (:msg response))))))))
 
 (defn make-key-mapper [f keys]
   (fn [m]
@@ -191,3 +195,18 @@
   (parse-response
    (request (str (format "https://github.com/%s/%s/network_data_chunk?" user repo)
                  "?" (url-encode (merge {"nethash" nethash} (auth-info)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Object API
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(GET tree-contents "tree/show/:user/:repo/:tree_sha")
+(GET blob-contents-by-tree "blob/show/:user/:repo/:tree_sha/:path")
+(GET list-blobs "blob/all/:user/:repo/:tree_sha")
+
+(defn blob-contents [user repo sha]
+  (parse-response
+   (request (str base-url
+                 (format "blob/show/%s/%s/%s" user repo sha)
+                 "?" (url-encode (auth-info))))
+   identity))
+
