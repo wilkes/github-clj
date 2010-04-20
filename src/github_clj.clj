@@ -4,7 +4,7 @@
         [clojure.http.client :only [url-encode request]]
         [clojure.contrib.str-utils :only [re-sub re-gsub]]))
 
-(def base-url "http://github.com/api/v2/json/")
+(def base-url "https://github.com/api/v2/json/")
 
 (defvar *login*)
 (defvar *token*)
