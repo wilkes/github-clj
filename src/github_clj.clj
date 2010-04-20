@@ -34,7 +34,7 @@
 (defn auth-info []  {"login" *login* "token" *token*})
 
 (defn map-keys [f m]
-  (let [listish? #(or (list? %) (vector %))
+  (let [listish? #(or (list? %) (vector? %))
         val-fn (fn [v]
                  (cond
                   (map? v) (map-keys f v)
