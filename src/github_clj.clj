@@ -59,7 +59,11 @@
 
 (defn parse-json [body]
   (try
-   (keywordify-keys (read-json-string body))
+   (let [result (keywordify-keys (read-json-string body))
+         ks (keys result)]
+     (if (= 1 (count ks))
+       ((first ks) result)
+       result))
    (catch Exception e
      (throw (Exception. (str "Unable to parse:\n" body "\n\n")
                         e)))))
