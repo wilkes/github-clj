@@ -1,4 +1,4 @@
-(defproject github-clj "0.2.0"
+(defproject github-clj "0.2.1"
   :description "A clojure wrapper around the Github API"
   :dependencies [[org.clojure/clojure "1.1.0"]
                  [org.clojure/clojure-contrib "1.1.0"]

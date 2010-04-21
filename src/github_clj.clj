@@ -167,10 +167,10 @@
 (POST  add-collaborator     "repos/collaborators/:repo/add/:user")
 (POST  remove-collaborator  "repos/collaborators/:repo/remove/:user")
 (GET   pushable-repos       "repos/pushable")
-(GET   repos-network        "repos/show/:user/:repo/network")
-(GET   repos-languages      "repos/show/:user/:repo/languages")
-(GET   repos-tags           "repos/show/:user/:repo/tags")
-(GET   repos-branches       "repos/show/:user/:repo/branches")
+(GET   repo-network        "repos/show/:user/:repo/network")
+(GET   repo-languages      "repos/show/:user/:repo/languages")
+(GET   repo-tags           "repos/show/:user/:repo/tags")
+(GET   repo-branches       "repos/show/:user/:repo/branches")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Commits API
