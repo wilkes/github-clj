@@ -24,14 +24,29 @@
   (:use [clojure.contrib.json.read :only [read-json-string]]
         [clojure.contrib.def :only [defvar]]
         [clojure.http.client :only [url-encode request]]
-        [clojure.contrib.str-utils :only [re-sub re-gsub]]))
+        [clojure.contrib.str-utils :only [re-sub re-gsub]]
+        [clojure.contrib.duck-streams :only [read-lines]])
+  (:import [java.io File]))
 
 (def base-url "https://github.com/api/v2/json/")
 
-(defvar *login*)
-(defvar *token*)
+(defvar *login* nil)
+(defvar *token* nil)
 
-(defn auth-info []  {"login" *login* "token" *token*})
+
+(defn parse-config []
+  (let [lines (read-lines (File. (System/getProperty "user.home") ".gitconfig"))]
+    (apply hash-map
+           (apply concat
+                  (for [l (rest (drop-while #(not (= "[github]" %)) lines))
+                        :while (not (re-find #"^\[" l))]
+                    (rest (re-find #"\t([a-z]+) = (.*)" l)))))))
+
+(defn auth-info []
+  (if (and *login* *token*)
+    {"login" *login* "token" *token*}
+    (let [{login "user" token "token"} (parse-config)]
+      {"login" login "token" token})))
 
 (defn map-keys [f m]
   (let [listish? #(or (list? %) (vector? %))
