@@ -33,14 +33,14 @@
 (defvar *login* nil)
 (defvar *token* nil)
 
+(defn pairs->map [pairs]
+  (apply hash-map (apply concat pairs)))
 
 (defn parse-config []
   (let [lines (read-lines (File. (System/getProperty "user.home") ".gitconfig"))]
-    (apply hash-map
-           (apply concat
-                  (for [l (rest (drop-while #(not (= "[github]" %)) lines))
-                        :while (not (re-find #"^\[" l))]
-                    (rest (re-find #"\t([a-z]+) = (.*)" l)))))))
+    (pairs->map (for [l (rest (drop-while #(not (= "[github]" %)) lines))
+                      :while (not (re-find #"^\[" l))]
+                  (rest (re-find #"\t([a-z]+) = (.*)" l))))))
 
 (defn auth-info []
   (if (and *login* *token*)
@@ -48,12 +48,14 @@
     (let [{login "user" token "token"} (parse-config)]
       {"login" login "token" token})))
 
+(defn login [] (get (auth-info) "login"))
+(defn token [] (get (auth-info) "token"))
+
 (defn map-keys [f m]
-  (let [listish? #(or (list? %) (vector? %))
-        val-fn (fn [v]
+  (let [val-fn (fn [v]
                  (cond
                   (map? v) (map-keys f v)
-                  (listish? v) (map #(if (map? %) (map-keys f %) %) v)
+                  (sequential? v) (map #(if (map? %) (map-keys f %) %) v)
                   :default v))
         reduce-fn  (fn [r [k v]]
                      (conj r {(f k) (val-fn v)}))]
@@ -66,11 +68,11 @@
   (map-keys keyword m))
 
 (defn sub-action [action]
-  (re-sub #"\*login\*" *login* action))
+  (re-sub #"\*login\*" (login) action))
 
 (defn parse-url-str [s]
-  [(re-gsub #":[a-z]+" "%s" s)
-   (vec (map (comp symbol second) (re-seq #":([a-z]+)" s)))])
+  [(re-gsub #":[a-z_]+" "%s" s)
+   (vec (map (comp symbol second) (re-seq #":([a-z_]+)" s)))])
 
 (defn parse-json [body]
   (try
@@ -108,7 +110,8 @@
   (make-key-mapper identity keys))
 
 (defn do-get [action]
-  (parse-response (request (str base-url action "?" (url-encode (auth-info))))))
+  (let [auth-params (str "?" (url-encode (auth-info)))]
+    (parse-response (request (str base-url action auth-params)))))
 
 (defn do-post [action & [params]]
   (let [post-data (if (map? params)
